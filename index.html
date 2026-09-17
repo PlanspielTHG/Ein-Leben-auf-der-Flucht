@@ -293,6 +293,7 @@ canvas {
   line-height: 1;
   padding: .3rem;
 }
+#doc-img { width: 100%; max-height: 300px; object-fit: contain; background: #1a1410; display: block; }
 #doc-body { padding: 1rem 1.3rem 1.3rem; }
 #doc-label { font-size: .6rem; letter-spacing: .24em; color: var(--rust); text-transform: uppercase; margin-bottom: .28rem; }
 #doc-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--ink); margin-bottom: .44rem; }
@@ -308,7 +309,6 @@ canvas {
   font-family: 'Crimson Pro', serif;
   font-size: .85rem;
   cursor: pointer;
-  display: none;
 }
 #doc-continue:hover { background: var(--ink); }
 
@@ -461,7 +461,7 @@ canvas {
       <div id="timer-wrap">
         <div id="timer-icon">⏱</div>
         <div id="timer-bar-bg"><div id="timer-bar"></div></div>
-        <div id="timer-text">30</div>
+        <div id="timer-text">45</div>
       </div>
     </div>
     
@@ -486,6 +486,7 @@ canvas {
     <div id="doc-overlay" class="overlay">
       <div id="doc-box">
         <button id="doc-close" onclick="closeDoc()">✕</button>
+        <img id="doc-img" src="" alt="Archivbild">
         <div id="doc-body">
           <div id="doc-label"></div>
           <div id="doc-title"></div>
@@ -518,11 +519,18 @@ canvas {
 <div id="end-screen">
   <h2>Yael Nemenoff</h2>
   <p>Eva-Lotte Rosendahl, die sich in Israel <strong style="color:var(--gold)">Yael</strong> nannte, gründete 1948 den Kibbuz <strong style="color:var(--gold)">Kfar HaNassi</strong> im Norden Israels.</p>
-  <p>Ihre Eltern wurden im April 1942 deportiert. Yael kehrte später mehrfach nach Essen zurück, um ihre Geschichte zu teilen.</p>
+  <p>Sie arbeitete 30 Jahre als Kindergärtnerin, heiratete Eddi Nemenoff und bekam drei Kinder. Ihre Brüder lebten ebenfalls in Israel.</p>
+  <p>Ihre Eltern <strong style="color:var(--gold)">Hermann und Elisabeth Rosendahl</strong> wurden im April 1942 nach Izbica deportiert und ermordet.</p>
+  <p>Yael kehrte mehrfach nach Essen zurück und hielt Vorträge in Schulen – damit die Geschichte nicht vergessen wird.</p>
   <button id="btn-replay" onclick="location.reload()">Von vorne beginnen</button>
 </div>
 
 <script>
+// Base64 Foto-Assets aus dem Archiv Alte Synagoge Essen
+const PHOTOS = {
+  ar3894: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAkGBwgHBgkIBwgKCgkLDRYPDQwMDRsUFRAWIB0iIiAdHx8kKDQsJCYxJx8fLT0tMTU3Ojo6Iys/RD84QzQ5Ojf/2wBDAQoKCg0MDRoPDxo3JR8lNzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzf/wAARCAH0ArwDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD3GiiigAooooAKKM0UAFFGaMigAopMj1oyPWgBaKMijNABRRRQAUUUUAFFFFABRRRQAUUUZoAKKM0maAFopM0ZoAWijNFABRRRQAUUUZoAKKQsB1IH1pDIg6so/GgB1FNDqejA/jSNNGpw0iD6sKAH0U3ev94fnQHU9GB/GgB1FRvPDGcPLGp9CwFRHULMdbuAf9tV/wAaALNFVxf2ZOBdQE+nmL/jTxcwFSwmjwOp3jigCWiqq6lYucJe2zH2lU/1p73lrGQHuYVJ6BpAKAJ6Krpf2bkhLuBiOoEqnH60n2+zxn7XBj181f"
+};
+
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 
@@ -544,30 +552,30 @@ const levels = [
     name: "Essen – Das Elternhaus",
     year: "1935",
     items: [
-      { id: "doc1", title: "Familienfoto Rosendahl", text: "Eva-Lotte wächst in einer geborgenen jüdischen Familie in Essen auf. Der Vater führt ein Geschäft.", archive: "Archiv Alte Synagoge Essen", x: 300, y: 300 }
+      { id: "doc1", title: "Familienfoto Rosendahl", text: "Eva-Lotte wächst in einer geborgenen jüdischen Familie in Essen auf. Der Vater führt ein erfolgreiches Geschäft, während die Wolken über Deutschland bereits dunkler werden.", archive: "Archiv Alte Synagoge Essen", img: PHOTOS.ar3894, x: 300, y: 300 }
     ],
     decision: {
-      question: "Die Repressionen nehmen zu. Was tut die Familie?",
+      question: "Die Repressionen gegen jüdische Bürger nehmen im Deutschen Reich massiv zu. Wie reagiert das familiäre Umfeld?",
       options: [
-        { text: "Versuchen, den Alltag aufrechtzuerhalten und auf Besserung zu hoffen.", correct: true },
-        { text: "Sofort alle Besitztümer verkaufen und das Land verlassen.", correct: false }
+        { text: "Viele hoffen auf eine Beruhigung der Lage und versuchen, den Alltag so gut es geht aufrechtzuerhalten.", correct: true },
+        { text: "Es gelingt der gesamten Verwandtschaft sofort, legal in die USA auszuwandern.", correct: false }
       ],
-      reveal: "Viele Familien unterschätzten zunächst die Gefahr oder waren fest in ihrer Heimat verwurzelt."
+      reveal: "Viele Familien unterschätzten zunächst die Gefahr oder waren tief in ihrer Heimat verwurzelt, wodurch ein später Entschluss oft unmöglich wurde."
     }
   },
   {
     name: "Die Flucht nach Palästina",
     year: "1939–1948",
     items: [
-      { id: "doc2", title: "Ankunft im Kibbuz", text: "Nach entbehrungsreicher Flucht baut sich Eva-Lotte unter dem Namen Yael in Israel ein neues Leben auf.", archive: "Kfar HaNassi Archiv", x: 500, y: 300 }
+      { id: "doc2", title: "Ankunft im Kibbuz", text: "Nach einer entbehrungsreichen Flucht baut sich Eva-Lotte unter dem hebräischen Namen Yael in Israel ein völlig neues Leben auf.", archive: "Kfar HaNassi Archiv", img: PHOTOS.ar3894, x: 500, y: 300 }
     ],
     decision: {
-      question: "Wie prägt diese Zeit ihr weiteres Leben?",
+      question: "Welche Rolle spielt die Erinnerung für Yael in ihrem späteren Leben im Kibbuz Kfar HaNassi?",
       options: [
-        { text: "Sie gründet den Kibbuz Kfar HaNassi und arbeitet jahrzehntelang als Kindergärtnerin.", correct: true },
-        { text: "Sie bricht jeglichen Kontakt zu ihrer Vergangenheit ab.", correct: false }
+        { text: "Sie verarbeitet das Erlebte, indem sie als Kindergärtnerin arbeitet und später als Zeitzeugin in Schulen spricht.", correct: true },
+        { text: "Sie bricht jeden Kontakt nach Deutschland ab und spricht nie wieder über ihre Jugend.", correct: false }
       ],
-      reveal: "Yael kehrte später sogar nach Essen zurück, um in Schulen aus ihrer Jugend zu berichten."
+      reveal: "Yael kehrte mehrfach nach Essen zurück, um ihre Lebensgeschichte mit Jugendlichen zu teilen und die Erinnerung wachzuhalten."
     }
   }
 ];
@@ -780,7 +788,7 @@ function openDocument(item) {
   document.getElementById('doc-title').textContent = item.title;
   document.getElementById('doc-text').innerHTML = `<p>${item.text}</p>`;
   document.getElementById('doc-archive').textContent = item.archive;
-  document.getElementById('doc-continue').style.display = 'inline-block';
+  document.getElementById('doc-img').src = item.img;
   
   document.getElementById('doc-overlay').classList.add('open');
 }
