@@ -2,19 +2,19 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Ein Leben auf der Flucht</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--ink:#12100e;--cream:#f2ead8;--gold:#c49a3c;--rust:#8b3a1e;--parchment:#e8dfc8;}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Crimson Pro',Georgia,serif;touch-action:none}
-#game-wrap{position:relative;width:100vw;height:100vh;overflow:hidden;background:#000}
-canvas{display:block;position:absolute;top:0;left:0}
-#ui{position:absolute;inset:0;pointer-events:none;z-index:10}
+#game-wrap{position:fixed;width:100vw;height:100vh;overflow:hidden;background:#000;top:0;left:0}
+canvas{display:block;position:absolute;top:0;left:0;image-rendering:auto}
+#ui{position:fixed;inset:0;pointer-events:none;z-index:10}
 
 /* ── HUD ── */
-#hud{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:.7rem;padding:.5rem 1rem;background:linear-gradient(to bottom,rgba(8,6,4,.96) 65%,transparent);z-index:20}
+#hud{position:absolute;top:env(safe-area-inset-top,0);left:0;right:0;display:flex;align-items:center;gap:.7rem;padding:.5rem 1rem .5rem 1rem;background:linear-gradient(to bottom,rgba(8,6,4,.96) 65%,transparent);z-index:20}
 #hud-title{font-family:'Playfair Display',serif;font-size:.9rem;color:var(--gold);font-style:italic;white-space:nowrap}
 #hud-chapter{font-size:.6rem;letter-spacing:.15em;color:#9a8a6a;text-transform:uppercase;flex:1;text-align:center}
 
@@ -41,21 +41,21 @@ canvas{display:block;position:absolute;top:0;left:0}
 #loc-year{font-size:.7rem;letter-spacing:.24em;color:var(--gold);text-transform:uppercase;margin-top:.16rem}
 
 /* ── INTERACT PROMPT ── */
-#interact-prompt{position:absolute;bottom:4rem;left:50%;transform:translateX(-50%);background:rgba(8,6,4,.9);border:1px solid var(--gold);padding:.4rem 1rem;color:var(--gold);font-size:.78rem;letter-spacing:.1em;pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap}
+#interact-prompt{position:absolute;bottom:9rem;left:50%;transform:translateX(-50%);background:rgba(8,6,4,.9);border:1px solid var(--gold);padding:.4rem 1rem;color:var(--gold);font-size:.78rem;letter-spacing:.1em;pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap}
 #interact-prompt.show{opacity:1}
 
 /* ── PROGRESS DOTS ── */
-#progress-bar{position:absolute;bottom:1.2rem;left:50%;transform:translateX(-50%);display:flex;gap:.4rem;pointer-events:none}
+#progress-bar{position:absolute;bottom:1.8rem;left:50%;transform:translateX(-50%);display:flex;gap:.4rem;pointer-events:none}
 .prog-dot{width:9px;height:9px;border-radius:50%;background:#1a1408;border:1.5px solid #4a3a20;transition:all .3s}
 .prog-dot.visited{background:var(--gold);border-color:var(--gold)}
 .prog-dot.current{background:var(--cream);border-color:var(--cream);box-shadow:0 0 7px var(--gold)}
 
 /* ── TOUCH JOYSTICK ── */
-#touch-zone{display:none;position:absolute;bottom:1.2rem;left:1.2rem;width:130px;height:130px;pointer-events:all;touch-action:none;z-index:20}
+#touch-zone{display:none;position:absolute;bottom:3.5rem;left:1.5rem;width:130px;height:130px;pointer-events:all;touch-action:none;z-index:20}
 #joy-base{position:absolute;inset:0;border-radius:50%;background:rgba(20,16,10,.38);border:2px solid rgba(196,154,60,.55)}
 #joy-knob{position:absolute;width:54px;height:54px;left:38px;top:38px;border-radius:50%;background:rgba(196,154,60,.78);border:2px solid rgba(255,255,255,.55);pointer-events:none;transition:background .12s}
 #joy-knob.active{background:rgba(255,224,96,.92)}
-#touch-interact{display:none;position:absolute;bottom:1.4rem;right:1.4rem;width:82px;height:82px;border-radius:50%;background:rgba(196,154,60,.25);border:2px solid var(--gold);pointer-events:all;touch-action:none;z-index:20;flex-direction:column;align-items:center;justify-content:center;color:var(--gold);font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;transition:background .12s;cursor:pointer}
+#touch-interact{display:none;position:absolute;bottom:3.5rem;right:1.5rem;width:82px;height:82px;border-radius:50%;background:rgba(196,154,60,.25);border:2px solid var(--gold);pointer-events:all;touch-action:none;z-index:20;flex-direction:column;align-items:center;justify-content:center;color:var(--gold);font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;transition:background .12s;cursor:pointer}
 #touch-interact .ti-ico{font-size:1.7rem;line-height:1;margin-bottom:.1rem}
 #touch-interact.active{background:rgba(255,224,96,.45)}
 
@@ -219,13 +219,16 @@ const MAP_W  = 900, MAP_H = 600;
 
 function resizeCanvas(){
   const vw = window.innerWidth, vh = window.innerHeight;
-  const scale = Math.min(vw / MAP_W, vh / MAP_H);
+  const sc = Math.min(vw / MAP_W, vh / MAP_H);
   canvas.width  = MAP_W;
   canvas.height = MAP_H;
-  canvas.style.width  = Math.round(MAP_W * scale) + 'px';
-  canvas.style.height = Math.round(MAP_H * scale) + 'px';
-  canvas.style.left   = Math.round((vw - MAP_W * scale) / 2) + 'px';
-  canvas.style.top    = Math.round((vh - MAP_H * scale) / 2) + 'px';
+  // Use CSS transform so internal coords stay 900x600
+  canvas.style.transformOrigin = '0 0';
+  canvas.style.transform = 'scale(' + sc + ')';
+  canvas.style.left = Math.round((vw - MAP_W * sc) / 2) + 'px';
+  canvas.style.top  = Math.round((vh - MAP_H * sc) / 2) + 'px';
+  canvas.style.width  = MAP_W + 'px';
+  canvas.style.height = MAP_H + 'px';
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
