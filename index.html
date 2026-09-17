@@ -23,6 +23,7 @@ html, body {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+  touch-action: none;
 }
 #game-wrap {
   position: relative;
@@ -82,6 +83,7 @@ canvas {
   border: 2px solid var(--gold);
   border-radius: 4px;
   padding: .3rem .65rem;
+  pointer-events: all;
 }
 #timer-icon { font-size: .95rem; line-height: 1; }
 #timer-bar-bg {
@@ -111,6 +113,131 @@ canvas {
   font-family: 'Playfair Display', serif;
 }
 
+/* ── LOC BANNER ── */
+#loc-banner {
+  position: absolute;
+  top: 3.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .5s;
+  white-space: nowrap;
+  z-index: 25;
+}
+#loc-banner.show { opacity: 1; }
+#loc-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem;
+  color: var(--cream);
+  text-shadow: 0 2px 18px rgba(0,0,0,.95);
+}
+#loc-year {
+  font-size: .65rem;
+  letter-spacing: .24em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-top: .15rem;
+}
+
+/* ── INTERACT PROMPT ── */
+#interact-prompt {
+  position: absolute;
+  bottom: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(8,6,4,.9);
+  border: 1px solid var(--gold);
+  padding: .4rem 1rem;
+  color: var(--gold);
+  font-size: .78rem;
+  letter-spacing: .1em;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .3s;
+  white-space: nowrap;
+  z-index: 25;
+}
+#interact-prompt.show { opacity: 1; }
+
+/* ── PROGRESS DOTS ── */
+#progress-bar {
+  position: absolute;
+  bottom: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: .4rem;
+  pointer-events: none;
+  z-index: 25;
+}
+.prog-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #1a1408;
+  border: 1.5px solid #4a3a20;
+  transition: all .3s;
+}
+.prog-dot.visited { background: var(--gold); border-color: var(--gold); }
+.prog-dot.current { background: var(--cream); border-color: var(--cream); box-shadow: 0 0 7px var(--gold); }
+
+/* ── TOUCH JOYSTICK & CONTROLS ── */
+#touch-zone {
+  display: none;
+  position: absolute;
+  bottom: 1.2rem;
+  left: 1.2rem;
+  width: 130px;
+  height: 130px;
+  pointer-events: all;
+  touch-action: none;
+  z-index: 30;
+}
+#joy-base {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(20,16,10,.38);
+  border: 2px solid rgba(196,154,60,.55);
+}
+#joy-knob {
+  position: absolute;
+  width: 54px;
+  height: 54px;
+  left: 38px;
+  top: 38px;
+  border-radius: 50%;
+  background: rgba(196,154,60,.78);
+  border: 2px solid rgba(255,255,255,.55);
+  pointer-events: none;
+  transition: background .12s;
+}
+#touch-interact {
+  display: none;
+  position: absolute;
+  bottom: 1.4rem;
+  right: 1.4rem;
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background: rgba(196,154,60,.25);
+  border: 2px solid var(--gold);
+  pointer-events: all;
+  touch-action: none;
+  z-index: 30;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold);
+  font-size: .6rem;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+#touch-interact .ti-ico { font-size: 1.7rem; line-height: 1; margin-bottom: .1rem; }
+
 /* ── OVERLAYS ── */
 .overlay {
   position: absolute;
@@ -122,6 +249,7 @@ canvas {
   pointer-events: none;
   transition: opacity .35s;
   padding: 1.4rem;
+  z-index: 40;
 }
 .overlay.open { opacity: 1; pointer-events: all; }
 
@@ -140,8 +268,102 @@ canvas {
   cursor: pointer;
   pointer-events: all;
 }
+#btn-retry:hover { background: var(--gold); color: var(--ink); }
 
-/* ── TITLE / END ── */
+#doc-overlay { background: rgba(0,0,0,.87); }
+#doc-box {
+  background: var(--parchment);
+  max-width: 640px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 18px 55px rgba(0,0,0,.75);
+  pointer-events: all;
+}
+#doc-close {
+  position: absolute;
+  top: .6rem;
+  right: .9rem;
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  color: #6b4f35;
+  cursor: pointer;
+  line-height: 1;
+  padding: .3rem;
+}
+#doc-body { padding: 1rem 1.3rem 1.3rem; }
+#doc-label { font-size: .6rem; letter-spacing: .24em; color: var(--rust); text-transform: uppercase; margin-bottom: .28rem; }
+#doc-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--ink); margin-bottom: .44rem; }
+#doc-text { font-size: .88rem; line-height: 1.73; color: #3a2a1a; }
+#doc-text p { margin-bottom: .6rem; }
+#doc-archive { margin-top: .65rem; font-size: .63rem; letter-spacing: .12em; color: #9a8a6a; border-top: 1px solid #d4c4a0; padding-top: .5rem; }
+#doc-continue {
+  margin-top: .85rem;
+  padding: .5rem 1.3rem;
+  background: var(--rust);
+  color: #fff;
+  border: none;
+  font-family: 'Crimson Pro', serif;
+  font-size: .85rem;
+  cursor: pointer;
+  display: none;
+}
+#doc-continue:hover { background: var(--ink); }
+
+#decision-overlay { background: rgba(0,0,0,.93); }
+#decision-box {
+  background: var(--ink);
+  border: 1px solid var(--gold);
+  max-width: 580px;
+  width: 100%;
+  padding: 1.6rem;
+  pointer-events: all;
+}
+#dec-label { font-size: .6rem; letter-spacing: .26em; color: var(--gold); text-transform: uppercase; margin-bottom: .6rem; }
+#dec-question { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--cream); line-height: 1.52; margin-bottom: 1.15rem; }
+.dec-btn {
+  display: block;
+  width: 100%;
+  padding: .65rem .9rem;
+  margin-bottom: .4rem;
+  background: rgba(255,255,255,.04);
+  border: 1px solid #3a2a1a;
+  color: #c8b89a;
+  font-family: 'Crimson Pro', serif;
+  font-size: .87rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all .2s;
+  line-height: 1.5;
+}
+.dec-btn:hover { background: rgba(196,154,60,.12); border-color: var(--gold); color: var(--gold); }
+#dec-reveal {
+  display: none;
+  margin-top: .95rem;
+  padding: .85rem;
+  border-left: 2px solid var(--gold);
+  background: rgba(255,255,255,.03);
+  color: #c8b89a;
+  font-size: .85rem;
+  line-height: 1.68;
+}
+#dec-reveal.show { display: block; }
+#dec-next {
+  display: none;
+  margin-top: .85rem;
+  padding: .58rem 1.3rem;
+  background: var(--gold);
+  color: var(--ink);
+  border: none;
+  font-family: 'Crimson Pro', serif;
+  font-size: .87rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ── TITLE / END SCREENS ── */
 #title-screen {
   position: absolute;
   inset: 0;
@@ -184,8 +406,49 @@ canvas {
   letter-spacing: .2em;
   text-transform: uppercase;
   cursor: pointer;
-  pointer-events: all;
+  transition: all .25s;
 }
+#btn-play:hover { background: var(--gold); color: var(--ink); }
+
+#end-screen {
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  z-index: 50;
+  overflow-y: auto;
+}
+#end-screen h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  color: var(--gold);
+  margin-bottom: .8rem;
+}
+#end-screen p {
+  color: #c8b89a;
+  font-size: .9rem;
+  max-width: 500px;
+  line-height: 1.85;
+  margin-bottom: .65rem;
+}
+#btn-replay {
+  margin-top: 1.3rem;
+  padding: .65rem 1.7rem;
+  border: 1px solid var(--gold);
+  background: transparent;
+  color: var(--gold);
+  font-family: 'Crimson Pro', serif;
+  font-size: .8rem;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+#btn-replay:hover { background: var(--gold); color: var(--ink); }
 </style>
 </head>
 <body>
@@ -202,10 +465,45 @@ canvas {
       </div>
     </div>
     
+    <div id="loc-banner"><div id="loc-name"></div><div id="loc-year"></div></div>
+    <div id="interact-prompt">[ E / Touch ] Anschauen</div>
+    <div id="progress-bar"></div>
+
+    <!-- Touch Joystick -->
+    <div id="touch-zone">
+      <div id="joy-base"></div>
+      <div id="joy-knob"></div>
+    </div>
+    <div id="touch-interact"><div class="ti-ico">👁</div>Anschauen</div>
+
+    <!-- Overlays -->
     <div id="gameover-overlay" class="overlay">
       <h2>⏱ Zeit abgelaufen</h2>
-      <p id="gameover-text">Die Zeit ist um.</p>
+      <p id="gameover-text">Die Zeit ist abgelaufen. Eva-Lotte konnte nicht rechtzeitig entkommen.</p>
       <button id="btn-retry" onclick="retryLevel()">Level neu starten</button>
+    </div>
+    
+    <div id="doc-overlay" class="overlay">
+      <div id="doc-box">
+        <button id="doc-close" onclick="closeDoc()">✕</button>
+        <div id="doc-body">
+          <div id="doc-label"></div>
+          <div id="doc-title"></div>
+          <div id="doc-text"></div>
+          <div id="doc-archive"></div>
+          <button id="doc-continue" onclick="docContinue()">Weiter →</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="decision-overlay" class="overlay">
+      <div id="decision-box">
+        <div id="dec-label">❖ Entscheidung</div>
+        <div id="dec-question"></div>
+        <div id="dec-options"></div>
+        <div id="dec-reveal"></div>
+        <button id="dec-next" onclick="decNext()">Weiter →</button>
+      </div>
     </div>
   </div>
 </div>
@@ -213,12 +511,18 @@ canvas {
 <div id="title-screen">
   <h1>Ein Leben auf der Flucht</h1>
   <div class="title-sub">Die Geschichte von Eva-Lotte Rosendahl · 1925–1948</div>
-  <p>Erkunde die Orte im Leben von Eva-Lotte – einer jüdischen Jugendlichen aus Essen. Sammle alle Dokumente bevor die Zeit abläuft.</p>
+  <p>Erkunde die Orte im Leben von Eva-Lotte – einer jüdischen Jugendlichen aus Essen. Sammle alle Dokumente, bevor die Zeit abläuft.</p>
   <button id="btn-play" onclick="startGame()">Spiel beginnen</button>
 </div>
 
+<div id="end-screen">
+  <h2>Yael Nemenoff</h2>
+  <p>Eva-Lotte Rosendahl, die sich in Israel <strong style="color:var(--gold)">Yael</strong> nannte, gründete 1948 den Kibbuz <strong style="color:var(--gold)">Kfar HaNassi</strong> im Norden Israels.</p>
+  <p>Ihre Eltern wurden im April 1942 deportiert. Yael kehrte später mehrfach nach Essen zurück, um ihre Geschichte zu teilen.</p>
+  <button id="btn-replay" onclick="location.reload()">Von vorne beginnen</button>
+</div>
+
 <script>
-// Canvas Initialisierung für Retina / iPad Displays absichern
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 
@@ -229,72 +533,311 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-let gameInterval = null;
-let timeLeft = 30;
+// Spiel-Zustand & Level-Daten
+let currentLevel = 0;
+let gameRunning = false;
+let timeLeft = 45;
+let timerInterval = null;
+
+const levels = [
+  {
+    name: "Essen – Das Elternhaus",
+    year: "1935",
+    items: [
+      { id: "doc1", title: "Familienfoto Rosendahl", text: "Eva-Lotte wächst in einer geborgenen jüdischen Familie in Essen auf. Der Vater führt ein Geschäft.", archive: "Archiv Alte Synagoge Essen", x: 300, y: 300 }
+    ],
+    decision: {
+      question: "Die Repressionen nehmen zu. Was tut die Familie?",
+      options: [
+        { text: "Versuchen, den Alltag aufrechtzuerhalten und auf Besserung zu hoffen.", correct: true },
+        { text: "Sofort alle Besitztümer verkaufen und das Land verlassen.", correct: false }
+      ],
+      reveal: "Viele Familien unterschätzten zunächst die Gefahr oder waren fest in ihrer Heimat verwurzelt."
+    }
+  },
+  {
+    name: "Die Flucht nach Palästina",
+    year: "1939–1948",
+    items: [
+      { id: "doc2", title: "Ankunft im Kibbuz", text: "Nach entbehrungsreicher Flucht baut sich Eva-Lotte unter dem Namen Yael in Israel ein neues Leben auf.", archive: "Kfar HaNassi Archiv", x: 500, y: 300 }
+    ],
+    decision: {
+      question: "Wie prägt diese Zeit ihr weiteres Leben?",
+      options: [
+        { text: "Sie gründet den Kibbuz Kfar HaNassi und arbeitet jahrzehntelang als Kindergärtnerin.", correct: true },
+        { text: "Sie bricht jeglichen Kontakt zu ihrer Vergangenheit ab.", correct: false }
+      ],
+      reveal: "Yael kehrte später sogar nach Essen zurück, um in Schulen aus ihrer Jugend zu berichten."
+    }
+  }
+];
+
+// Spieler
+let player = { x: window.innerWidth / 2, y: window.innerHeight / 2, radius: 18, speed: 3.5 };
+let keys = {};
+let touchMove = { x: 0, y: 0 };
+let activeItem = null;
+
+// Steuerung Listener
+window.addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+  if ((e.key === 'e' || e.key === 'E') && activeItem) {
+    openDocument(activeItem);
+  }
+});
+window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+// Touch Joystick Logik für Mobilgeräte / iPad
+const touchZone = document.getElementById('touch-zone');
+const joyKnob = document.getElementById('joy-knob');
+const touchInteractBtn = document.getElementById('touch-interact');
+let joyCenter = { x: 0, y: 0 };
+let isTouching = false;
+
+if ('ontouchstart' in window) {
+  touchZone.style.display = 'block';
+  touchInteractBtn.style.display = 'flex';
+}
+
+touchZone.addEventListener('touchstart', e => {
+  isTouching = true;
+  const rect = touchZone.getBoundingClientRect();
+  joyCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  handleTouchMove(e.touches[0]);
+});
+
+touchZone.addEventListener('touchmove', e => {
+  if (isTouching) handleTouchMove(e.touches[0]);
+});
+
+touchZone.addEventListener('touchend', () => {
+  isTouching = false;
+  touchMove = { x: 0, y: 0 };
+  joyKnob.style.transform = `translate(0px, 0px)`;
+});
+
+function handleTouchMove(touch) {
+  const dx = touch.clientX - joyCenter.x;
+  const dy = touch.clientY - joyCenter.y;
+  const dist = Math.hypot(dx, dy);
+  const maxDist = 40;
+  
+  const angle = Math.atan2(dy, dx);
+  const clampedDist = Math.min(dist, maxDist);
+  
+  joyKnob.style.transform = `translate(${Math.cos(angle)*clampedDist}px, ${Math.sin(angle)*clampedDist}px)`;
+  
+  touchMove.x = (Math.cos(angle) * (clampedDist / maxDist));
+  touchMove.y = (Math.sin(angle) * (clampedDist / maxDist));
+}
+
+touchInteractBtn.addEventListener('click', () => {
+  if (activeItem) openDocument(activeItem);
+});
 
 function startGame() {
-  try {
-    // 1. Start-Screen ausblenden
-    const titleScreen = document.getElementById('title-screen');
-    if (titleScreen) {
-      titleScreen.style.display = 'none';
+  document.getElementById('title-screen').style.display = 'none';
+  gameRunning = true;
+  currentLevel = 0;
+  loadLevel(currentLevel);
+  requestAnimationFrame(gameLoop);
+}
+
+function loadLevel(idx) {
+  if (idx >= levels.length) {
+    gameRunning = false;
+    document.getElementById('end-screen').style.display = 'flex';
+    return;
+  }
+  
+  const lvl = levels[idx];
+  document.getElementById('hud-chapter').textContent = `Kapitel ${idx + 1}`;
+  
+  // Banner anzeigen
+  const banner = document.getElementById('loc-banner');
+  document.getElementById('loc-name').textContent = lvl.name;
+  document.getElementById('loc-year').textContent = lvl.year;
+  banner.classList.add('show');
+  setTimeout(() => banner.classList.remove('show'), 3500);
+
+  // Fortschrittspunkte aktualisieren
+  updateProgressDots();
+
+  // Timer reset
+  timeLeft = 45;
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimer();
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      triggerGameOver();
     }
-
-    // 2. Canvas absichern
-    resizeCanvas();
-
-    // 3. Timer-Loop starten (verhindert Einfrieren)
-    if (gameInterval) clearInterval(gameInterval);
-    timeLeft = 30;
-    updateTimerUI();
-
-    gameInterval = setInterval(() => {
-      timeLeft--;
-      updateTimerUI();
-      if (timeLeft <= 0) {
-        clearInterval(gameInterval);
-        triggerGameOver();
-      }
-    }, 1000);
-
-    // Starte hier deinen Game-Loop / Render-Loop falls vorhanden
-    requestAnimationFrame(gameLoop);
-
-  } catch (err) {
-    alert("Fehler beim Starten: " + err.message);
-  }
+  }, 1000);
 }
 
-function updateTimerUI() {
-  const timerText = document.getElementById('timer-text');
-  const timerBar = document.getElementById('timer-bar');
-  if (timerText) timerText.textContent = timeLeft;
-  if (timerBar) {
-    const percentage = (timeLeft / 30) * 100;
-    timerBar.style.width = percentage + '%';
-  }
+function updateTimer() {
+  document.getElementById('timer-text').textContent = timeLeft;
+  const bar = document.getElementById('timer-bar');
+  const pct = (timeLeft / 45) * 100;
+  bar.style.width = pct + '%';
+  bar.className = timeLeft <= 10 ? 'danger' : timeLeft <= 20 ? 'warn' : '';
 }
 
-function triggerGameOver() {
-  const overlay = document.getElementById('gameover-overlay');
-  if (overlay) overlay.classList.add('open');
-}
-
-function retryLevel() {
-  const overlay = document.getElementById('gameover-overlay');
-  if (overlay) overlay.classList.remove('open');
-  startGame();
+function updateProgressDots() {
+  const bar = document.getElementById('progress-bar');
+  bar.innerHTML = '';
+  levels.forEach((_, i) => {
+    const dot = document.createElement('div');
+    dot.className = `prog-dot ${i < currentLevel ? 'visited' : i === currentLevel ? 'current' : ''}`;
+    bar.appendChild(dot);
+  });
 }
 
 function gameLoop() {
-  // Einfacher Test-Render damit der Canvas nicht leer bleibt
+  if (!gameRunning) return;
+
+  // Bewegung berechnen
+  let dx = 0, dy = 0;
+  if (keys['w'] || keys['arrowup']) dy -= 1;
+  if (keys['s'] || keys['arrowdown']) dy += 1;
+  if (keys['a'] || keys['arrowleft']) dx -= 1;
+  if (keys['d'] || keys['arrowright']) dx += 1;
+
+  if (dx !== 0 && dy !== 0) {
+    dx *= 0.7071; dy *= 0.7071;
+  }
+
+  if (touchMove.x !== 0 || touchMove.y !== 0) {
+    dx = touchMove.x;
+    dy = touchMove.y;
+  }
+
+  player.x += dx * player.speed;
+  player.y += dy * player.speed;
+
+  // Begrenzung
+  player.x = Math.max(30, Math.min(canvas.width - 30, player.x));
+  player.y = Math.max(70, Math.min(canvas.height - 30, player.y));
+
+  // Rendern
   ctx.fillStyle = '#12100e';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Zeichne Atmosphäre / Bodenmuster
+  ctx.strokeStyle = '#1e1812';
+  ctx.lineWidth = 1;
+  for(let x=0; x<canvas.width; x+=60) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+
+  // Items prüfen
+  const lvl = levels[currentLevel];
+  activeItem = null;
   
-  ctx.fillStyle = '#c49a3c';
-  ctx.font = '20px Crimson Pro';
-  ctx.textAlign = 'center';
-  ctx.fillText('Spiel läuft auf dem iPad...', canvas.width / 2, canvas.height / 2);
+  lvl.items.forEach(item => {
+    // Zeichne Dokumenten-Symbol auf dem Boden
+    ctx.fillStyle = '#c49a3c';
+    ctx.beginPath();
+    ctx.arc(item.x, item.y, 16, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#12100e';
+    ctx.font = 'bold 12px Crimson Pro';
+    ctx.textAlign = 'center';
+    ctx.fillText('i', item.x, item.y + 4);
+
+    const dist = Math.hypot(player.x - item.x, player.y - item.y);
+    if (dist < 45) {
+      activeItem = item;
+    }
+  });
+
+  const prompt = document.getElementById('interact-prompt');
+  if (activeItem) {
+    prompt.classList.add('show');
+  } else {
+    prompt.classList.remove('show');
+  }
+
+  // Spieler zeichnen
+  ctx.fillStyle = '#f2ead8';
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#c49a3c';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  requestAnimationFrame(gameLoop);
+}
+
+function openDocument(item) {
+  gameRunning = false;
+  clearInterval(timerInterval);
+  
+  document.getElementById('doc-label').textContent = "Dokument gefunden";
+  document.getElementById('doc-title').textContent = item.title;
+  document.getElementById('doc-text').innerHTML = `<p>${item.text}</p>`;
+  document.getElementById('doc-archive').textContent = item.archive;
+  document.getElementById('doc-continue').style.display = 'inline-block';
+  
+  document.getElementById('doc-overlay').classList.add('open');
+}
+
+function closeDoc() {
+  document.getElementById('doc-overlay').classList.remove('open');
+  triggerDecision();
+}
+
+function docContinue() {
+  document.getElementById('doc-overlay').classList.remove('open');
+  triggerDecision();
+}
+
+function triggerDecision() {
+  const lvl = levels[currentLevel];
+  const box = document.getElementById('dec-options');
+  box.innerHTML = '';
+  
+  document.getElementById('dec-question').textContent = lvl.decision.question;
+  document.getElementById('dec-reveal').classList.remove('show');
+  document.getElementById('dec-next').style.display = 'none';
+
+  lvl.decision.options.forEach((opt) => {
+    const btn = document.createElement('button');
+    btn.className = 'dec-btn';
+    btn.textContent = opt.text;
+    btn.onclick = () => {
+      const reveal = document.getElementById('dec-reveal');
+      reveal.innerHTML = `<strong>Historischer Hintergrund:</strong> ${lvl.decision.reveal}`;
+      reveal.classList.add('show');
+      document.getElementById('dec-next').style.display = 'inline-block';
+    };
+    box.appendChild(btn);
+  });
+
+  document.getElementById('decision-overlay').classList.add('open');
+}
+
+function decNext() {
+  document.getElementById('decision-overlay').classList.remove('open');
+  currentLevel++;
+  loadLevel(currentLevel);
+  gameRunning = true;
+  requestAnimationFrame(gameLoop);
+}
+
+function triggerGameOver() {
+  gameRunning = false;
+  document.getElementById('gameover-overlay').classList.add('open');
+}
+
+function retryLevel() {
+  document.getElementById('gameover-overlay').classList.remove('open');
+  loadLevel(currentLevel);
+  gameRunning = true;
+  requestAnimationFrame(gameLoop);
 }
 </script>
 </body>
