@@ -10,7 +10,7 @@
 :root{--ink:#12100e;--cream:#f2ead8;--gold:#c49a3c;--rust:#8b3a1e;--parchment:#e8dfc8;}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Crimson Pro',Georgia,serif;touch-action:none}
 #game-wrap{position:fixed;width:100vw;height:100vh;overflow:hidden;background:#000;top:0;left:0}
-canvas{display:block;position:absolute;top:0;left:0;image-rendering:auto}
+canvas{display:block;position:absolute;top:0;left:0}
 #ui{position:fixed;inset:0;pointer-events:none;z-index:10}
 
 /* ── HUD ── */
@@ -217,18 +217,20 @@ const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
 const MAP_W  = 900, MAP_H = 600;
 
+// Scale factor: map (900x600) → viewport, letterboxed
+let _scale = 1, _offX = 0, _offY = 0;
 function resizeCanvas(){
+  const dpr = window.devicePixelRatio || 1;
   const vw = window.innerWidth, vh = window.innerHeight;
-  const sc = Math.min(vw / MAP_W, vh / MAP_H);
-  canvas.width  = MAP_W;
-  canvas.height = MAP_H;
-  // Use CSS transform so internal coords stay 900x600
-  canvas.style.transformOrigin = '0 0';
-  canvas.style.transform = 'scale(' + sc + ')';
-  canvas.style.left = Math.round((vw - MAP_W * sc) / 2) + 'px';
-  canvas.style.top  = Math.round((vh - MAP_H * sc) / 2) + 'px';
-  canvas.style.width  = MAP_W + 'px';
-  canvas.style.height = MAP_H + 'px';
+  _scale = Math.min(vw / MAP_W, vh / MAP_H);
+  _offX  = Math.round((vw - MAP_W * _scale) / 2);
+  _offY  = Math.round((vh - MAP_H * _scale) / 2);
+  canvas.width  = Math.round(vw * dpr);
+  canvas.height = Math.round(vh * dpr);
+  canvas.style.width  = vw + 'px';
+  canvas.style.height = vh + 'px';
+  canvas.style.left = '0px';
+  canvas.style.top  = '0px';
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
@@ -237,11 +239,13 @@ window.addEventListener('resize', resizeCanvas);
 // MOBILE DETECTION
 // ═══════════════════════════════════════════
 const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 1;
-if(isTouch){
-  document.getElementById('touch-zone').style.display    = 'block';
-  document.getElementById('touch-interact').style.display = 'flex';
-  document.getElementById('hud-controls').style.display  = 'none';
-  document.querySelector('.title-sub').insertAdjacentHTML('afterend','<p style="color:#c49a3c;font-size:.8rem;margin-bottom:.5rem">🕹 Joystick links · 👁 Taste rechts</p>');
+function setupTouchUI(){
+  if(isTouch){
+    document.getElementById('touch-zone').style.display    = 'block';
+    document.getElementById('touch-interact').style.display = 'flex';
+    const hc = document.getElementById('hud-controls');
+    if(hc) hc.style.display = 'none';
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -806,10 +810,15 @@ function gameLoop(ts){
 
   updateTimer(dt);
 
-  ctx.clearRect(0,0,MAP_W,MAP_H);
+  const dpr = window.devicePixelRatio || 1;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(_offX * dpr, _offY * dpr);
+  ctx.scale(_scale * dpr, _scale * dpr);
   drawBG(currentLevel);
   drawObjects(lvl.objects,lvl);
   drawPlayer();
+  ctx.restore();
 
   // Proximity
   nearObject=null;
@@ -896,10 +905,15 @@ function showBanner(name,year){
 }
 function showEnd(){gameRunning=false;document.getElementById('end-screen').style.display='flex';}
 function startGame(){
+  setupTouchUI();
   document.getElementById('title-screen').style.display='none';
-  gameRunning=true;loadLevel(0);requestAnimationFrame(gameLoop);
+  resizeCanvas();
+  gameRunning=true;
+  loadLevel(0);
+  lastFrame = performance.now();
+  requestAnimationFrame(gameLoop);
 }
-requestAnimationFrame(gameLoop);
+// Game loop starts via startGame()
 </script>
 </body>
 </html>
