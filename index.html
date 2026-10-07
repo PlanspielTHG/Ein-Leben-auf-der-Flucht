@@ -111,6 +111,36 @@ canvas{display:block;position:absolute;top:0;left:0}
 #btn-replay:hover,#btn-replay:active{background:var(--gold);color:var(--ink)}
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── LEVEL TRANSITION ── */
+#transition-overlay{
+  position:fixed;inset:0;z-index:100;
+  pointer-events:none;opacity:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:#0a0806;
+}
+#transition-overlay.active{pointer-events:all}
+#transition-canvas{display:block;width:100%;height:100%;position:absolute;inset:0}
+#transition-text{
+  position:relative;z-index:2;text-align:center;
+  opacity:0;transform:translateY(12px);
+  transition:opacity .5s, transform .5s;
+  pointer-events:none;
+}
+#transition-overlay.text-show #transition-text{opacity:1;transform:translateY(0)}
+#transition-title{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(1.2rem,3vw,2rem);
+  color:#f2ead8;
+  margin-bottom:.4rem;
+  text-shadow:0 2px 20px rgba(0,0,0,.9);
+}
+#transition-sub{
+  font-size:.88rem;
+  color:#c49a3c;
+  font-style:italic;
+  letter-spacing:.08em;
+}
 </style>
 </head>
 <body>
@@ -167,6 +197,15 @@ canvas{display:block;position:absolute;top:0;left:0}
         <button id="dec-next" onclick="decNext()">Weiter →</button>
       </div>
     </div>
+  </div>
+</div>
+
+
+<div id="transition-overlay">
+  <canvas id="transition-canvas"></canvas>
+  <div id="transition-text">
+    <div id="transition-title"></div>
+    <div id="transition-sub"></div>
   </div>
 </div>
 
@@ -894,7 +933,11 @@ function chooseDecision(chosen){
   decisionDone=true;
 }
 function decNext(){document.getElementById('decision-overlay').classList.remove('open');showingDecision=false;advanceLevel();}
-function advanceLevel(){currentLevel++;currentLevel>=LEVELS.length?showEnd():loadLevel(currentLevel);}
+function advanceLevel(){
+  currentLevel++;
+  if(currentLevel >= LEVELS.length){ showEnd(); return; }
+  playTransition(currentLevel, () => loadLevel(currentLevel));
+}
 function loadLevel(idx){
   const lvl=LEVELS[idx];
   visitedObjects.clear();levelObjVisited=0;decisionDone=false;
@@ -919,6 +962,379 @@ function startGame(){
   requestAnimationFrame(gameLoop);
 }
 // Game loop starts via startGame()
-</script>
-</body>
-</html>
+
+// ═══════════════════════════════════════════
+// LEVEL TRANSITIONS
+// ═══════════════════════════════════════════
+const TRANSITIONS = [
+  {vehicle:'ice',   title:'Kindertransport · Köln 1939',       sub:'Eva-Lotte steigt in den Zug...', bg:'#12182a'},
+  {vehicle:'ship',  title:'Überfahrt nach England · 1939',     sub:'Der Ärmelkanal liegt vor ihr...', bg:'#0e1820'},
+  {vehicle:'ship',  title:'Marseille · Sommer 1946',           sub:'Das illegale Schiff wartet im Hafen...', bg:'#0e1820'},
+  {vehicle:'ship',  title:'Zypern → Israel · 1948',            sub:'Nach Monaten im Lager – endlich frei...', bg:'#0e1820'},
+  {vehicle:'ship',  title:'Kfar HaNassi · Israel 1948',        sub:'Endlich – die Küste Palästinas...', bg:'#1a1208'},
+];
+
+let transAnim = null;
+
+function playTransition(nextLevelIdx, callback){
+  if(nextLevelIdx >= TRANSITIONS.length){ callback(); return; }
+  const tr = TRANSITIONS[nextLevelIdx - 1];
+  if(!tr){ callback(); return; }
+
+  const ov  = document.getElementById('transition-overlay');
+  const tc  = document.getElementById('transition-canvas');
+  const ctx2 = tc.getContext('2d');
+  const titleEl = document.getElementById('transition-title');
+  const subEl   = document.getElementById('transition-sub');
+
+  // Size transition canvas to full viewport
+  tc.width  = window.innerWidth;
+  tc.height = window.innerHeight;
+  const W = tc.width, H = tc.height;
+
+  titleEl.textContent = tr.title;
+  subEl.textContent   = tr.sub;
+  ov.style.background = tr.bg;
+  ov.style.opacity    = '0';
+  ov.style.transition = 'opacity .35s';
+  ov.classList.add('active');
+  ov.classList.remove('text-show');
+
+  // Vehicle x position (starts off-screen left, moves to right)
+  let vx = -320;
+  let startTime = null;
+  const DURATION = 4500; // ms total animation
+  const TEXT_DELAY = 500;
+
+  function drawICE(x, y, ctx2, W2){
+    // === ENVIRONMENT ===
+    // Sky gradient (dusk/evening for drama)
+    const skyGrad = ctx2.createLinearGradient(0, 0, 0, y + 60);
+    skyGrad.addColorStop(0, '#0a0e1a');
+    skyGrad.addColorStop(0.6, '#1a2240');
+    skyGrad.addColorStop(1, '#2a3050');
+    ctx2.fillStyle = skyGrad;
+    ctx2.fillRect(0, 0, W2, y + 60);
+
+    // Stars
+    ctx2.fillStyle = 'rgba(255,255,255,0.7)';
+    for(let i = 0; i < 40; i++){
+      const sx = (i * 173 + 50) % W2;
+      const sy = (i * 97 + 20) % (y - 40);
+      const sr = i % 5 === 0 ? 1.5 : 0.8;
+      ctx2.beginPath(); ctx2.arc(sx, sy, sr, 0, Math.PI*2); ctx2.fill();
+    }
+
+    // Distant city glow on horizon
+    const cityGlow = ctx2.createRadialGradient(W2*0.6, y-10, 0, W2*0.6, y-10, 200);
+    cityGlow.addColorStop(0, 'rgba(255,140,40,0.15)');
+    cityGlow.addColorStop(1, 'rgba(255,140,40,0)');
+    ctx2.fillStyle = cityGlow;
+    ctx2.fillRect(0, 0, W2, y + 10);
+
+    // Ground / platform area
+    ctx2.fillStyle = '#1a1c20';
+    ctx2.fillRect(0, y + 42, W2, 80);
+    // Platform edge
+    ctx2.fillStyle = '#2a2c32';
+    ctx2.fillRect(0, y + 38, W2, 6);
+    ctx2.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx2.fillRect(0, y + 38, W2, 2);
+
+    // === RAILS ===
+    // Ballast
+    ctx2.fillStyle = '#252830';
+    ctx2.fillRect(0, y + 30, W2, 14);
+    // Rail ties
+    for(let rx = ((x * 0.8) % 52) - 52; rx < W2 + 52; rx += 52){
+      ctx2.fillStyle = 'rgba(80,60,40,0.6)';
+      ctx2.fillRect(rx, y + 29, 38, 14);
+      ctx2.fillStyle = 'rgba(60,45,28,0.4)';
+      ctx2.fillRect(rx + 1, y + 30, 36, 12);
+    }
+    // Rails (two shiny lines)
+    const railGrad1 = ctx2.createLinearGradient(0, y+30, 0, y+36);
+    railGrad1.addColorStop(0, '#a0a8b0');
+    railGrad1.addColorStop(0.4, '#e0e8f0');
+    railGrad1.addColorStop(1, '#606870');
+    ctx2.fillStyle = railGrad1;
+    ctx2.fillRect(0, y + 30, W2, 5);
+    ctx2.fillRect(0, y + 37, W2, 5);
+
+    // === OVERHEAD LINE ===
+    ctx2.strokeStyle = 'rgba(180,190,210,0.35)';
+    ctx2.lineWidth = 1;
+    ctx2.setLineDash([]);
+    ctx2.beginPath(); ctx2.moveTo(0, y - 72); ctx2.lineTo(W2, y - 72); ctx2.stroke();
+    // Catenary poles
+    for(let px = ((x * 0.5) % 180) - 90; px < W2 + 90; px += 180){
+      ctx2.strokeStyle = 'rgba(120,130,150,0.3)';
+      ctx2.lineWidth = 2;
+      ctx2.beginPath(); ctx2.moveTo(px, y + 38); ctx2.lineTo(px, y - 72); ctx2.stroke();
+      ctx2.beginPath(); ctx2.moveTo(px - 20, y - 72); ctx2.lineTo(px + 20, y - 72); ctx2.stroke();
+    }
+
+    // === SPEED BLUR STREAKS (behind train) ===
+    const blurStart = x - 20;
+    for(let b = 0; b < 14; b++){
+      const bAlpha = 0.06 - b * 0.004;
+      const bLen = 80 + b * 55;
+      const bY = y - 32 + b * 4.5;
+      const bH = 3 - b * 0.18;
+      ctx2.fillStyle = `rgba(220,230,255,${Math.max(0, bAlpha)})`;
+      ctx2.fillRect(blurStart - bLen, bY, bLen, Math.max(0.5, bH));
+    }
+
+    // === GROUND REFLECTION ===
+    ctx2.save();
+    ctx2.globalAlpha = 0.12;
+    ctx2.scale(1, -0.18);
+    ctx2.translate(0, -(y + 90) * (1/0.18) * 2);
+    // reflection drawn below (simplified)
+    ctx2.fillStyle = '#e0e8f0';
+    ctx2.fillRect(x + 30, y - 30, 620, 60);
+    ctx2.restore();
+
+    ctx2.save();
+    ctx2.translate(x, y);
+
+    // ============================================================
+    // ICE TRAIN – faces RIGHT (nose on right side, tail on left)
+    // Total length ~640px. Nose tip at x=640.
+    // ============================================================
+
+    // Helper: draw a bogie (wheel assembly)
+    function bogie(bx, by){
+      // Frame
+      ctx2.fillStyle = '#18181e';
+      ctx2.fillRect(bx - 22, by + 16, 44, 18);
+      // Wheels (4 per bogie, visible as 2 pairs from side)
+      [-12, 12].forEach(ow => {
+        // Outer wheel face
+        const wGrad = ctx2.createRadialGradient(bx+ow, by+30, 0, bx+ow, by+30, 12);
+        wGrad.addColorStop(0, '#3a3a48');
+        wGrad.addColorStop(0.6, '#22222e');
+        wGrad.addColorStop(1, '#10101a');
+        ctx2.fillStyle = wGrad;
+        ctx2.beginPath(); ctx2.arc(bx+ow, by+30, 12, 0, Math.PI*2); ctx2.fill();
+        // Wheel flange
+        ctx2.strokeStyle = '#5a5a78'; ctx2.lineWidth = 2;
+        ctx2.beginPath(); ctx2.arc(bx+ow, by+30, 12, 0, Math.PI*2); ctx2.stroke();
+        // Hub
+        ctx2.fillStyle = '#7a7a98';
+        ctx2.beginPath(); ctx2.arc(bx+ow, by+30, 4, 0, Math.PI*2); ctx2.fill();
+        // Spokes (rotating)
+        const angle = (Date.now() * 0.006 + ow) % (Math.PI*2);
+        ctx2.strokeStyle = 'rgba(140,140,170,0.6)'; ctx2.lineWidth = 1.5;
+        for(let s=0;s<4;s++){
+          const sa = angle + s * Math.PI/2;
+          ctx2.beginPath();
+          ctx2.moveTo(bx+ow + Math.cos(sa)*4, by+30 + Math.sin(sa)*4);
+          ctx2.lineTo(bx+ow + Math.cos(sa)*11, by+30 + Math.sin(sa)*11);
+          ctx2.stroke();
+        }
+      });
+      // Axle
+      ctx2.strokeStyle = '#5a5a70'; ctx2.lineWidth = 3;
+      ctx2.beginPath(); ctx2.moveTo(bx-12, by+30); ctx2.lineTo(bx+12, by+30); ctx2.stroke();
+    }
+
+    // --- WAGON 3 (leftmost / tail) x: 0..155 ---
+    const w3g = ctx2.createLinearGradient(0, -32, 0, 30);
+    w3g.addColorStop(0, '#dde0e6');
+    w3g.addColorStop(0.3, '#f0f2f6');
+    w3g.addColorStop(0.7, '#e4e8ee');
+    w3g.addColorStop(1, '#c8ccd4');
+    ctx2.fillStyle = w3g; ctx2.fillRect(2, -32, 153, 62);
+    // Underbody
+    ctx2.fillStyle = '#28282e'; ctx2.fillRect(2, 22, 153, 10);
+    // Red stripe
+    const rs3 = ctx2.createLinearGradient(0,-8,0,2);
+    rs3.addColorStop(0,'#d01428'); rs3.addColorStop(0.5,'#ff2040'); rs3.addColorStop(1,'#c01020');
+    ctx2.fillStyle = rs3; ctx2.fillRect(2, -8, 153, 10);
+    // Windows row
+    for(let w=0;w<4;w++){
+      const wg = ctx2.createLinearGradient(10+w*36,-26,10+w*36,-8);
+      wg.addColorStop(0,'rgba(160,200,240,0.7)');
+      wg.addColorStop(0.5,'rgba(200,230,255,0.5)');
+      wg.addColorStop(1,'rgba(120,170,210,0.6)');
+      ctx2.fillStyle = wg; ctx2.fillRect(10+w*36, -26, 28, 20);
+      ctx2.strokeStyle='rgba(80,100,130,0.5)'; ctx2.lineWidth=1;
+      ctx2.strokeRect(10+w*36,-26,28,20);
+      // Frame divider
+      ctx2.strokeStyle='rgba(150,170,200,0.3)'; ctx2.lineWidth=0.5;
+      ctx2.beginPath(); ctx2.moveTo(24+w*36,-26); ctx2.lineTo(24+w*36,-6); ctx2.stroke();
+      // Silhouette
+      if(w%2===0){
+        ctx2.fillStyle='rgba(60,40,20,0.45)';
+        ctx2.beginPath(); ctx2.arc(24+w*36,-16,5,0,Math.PI*2); ctx2.fill();
+        ctx2.fillRect(20+w*36,-12,8,8);
+      }
+    }
+    // Door
+    ctx2.fillStyle='#c8ccd4'; ctx2.fillRect(148,-24,6,46);
+    ctx2.fillStyle='rgba(0,0,0,0.15)'; ctx2.fillRect(148,-24,1,46);
+    // Bogies
+    bogie(30, 0); bogie(128, 0);
+    // Coupling (left tail)
+    ctx2.fillStyle='#404048'; ctx2.fillRect(-8,-4,10,8);
+
+    // --- WAGON 2 x: 158..313 ---
+    ctx2.fillStyle = w3g; ctx2.fillRect(160, -32, 153, 62);
+    ctx2.fillStyle='#28282e'; ctx2.fillRect(160,22,153,10);
+    ctx2.fillStyle=rs3; ctx2.fillRect(160,-8,153,10);
+    for(let w=0;w<4;w++){
+      const wg2 = ctx2.createLinearGradient(168+w*36,-26,168+w*36,-8);
+      wg2.addColorStop(0,'rgba(160,200,240,0.7)');
+      wg2.addColorStop(0.5,'rgba(200,230,255,0.5)');
+      wg2.addColorStop(1,'rgba(120,170,210,0.6)');
+      ctx2.fillStyle=wg2; ctx2.fillRect(168+w*36,-26,28,20);
+      ctx2.strokeStyle='rgba(80,100,130,0.5)'; ctx2.lineWidth=1; ctx2.strokeRect(168+w*36,-26,28,20);
+      ctx2.strokeStyle='rgba(150,170,200,0.3)'; ctx2.lineWidth=0.5;
+      ctx2.beginPath(); ctx2.moveTo(182+w*36,-26); ctx2.lineTo(182+w*36,-6); ctx2.stroke();
+      if(w===1||w===3){
+        ctx2.fillStyle='rgba(60,40,20,0.45)';
+        ctx2.beginPath(); ctx2.arc(182+w*36,-16,5,0,Math.PI*2); ctx2.fill();
+        ctx2.fillRect(178+w*36,-12,8,8);
+      }
+    }
+    ctx2.fillStyle='#c8ccd4'; ctx2.fillRect(306,-24,6,46);
+    bogie(188,0); bogie(286,0);
+
+    // --- WAGON 1 x: 316..471 ---
+    ctx2.fillStyle = w3g; ctx2.fillRect(318,-32,153,62);
+    ctx2.fillStyle='#28282e'; ctx2.fillRect(318,22,153,10);
+    ctx2.fillStyle=rs3; ctx2.fillRect(318,-8,153,10);
+    // DB logo area
+    ctx2.fillStyle='rgba(255,255,255,0.12)'; ctx2.fillRect(380,-32,80,32);
+    ctx2.fillStyle='#c01020'; ctx2.font='bold 11px sans-serif'; ctx2.textAlign='left';
+    ctx2.fillText('DB', 390, -15);
+    for(let w=0;w<3;w++){
+      const wg3=ctx2.createLinearGradient(326+w*40,-26,326+w*40,-8);
+      wg3.addColorStop(0,'rgba(160,200,240,0.7)');
+      wg3.addColorStop(1,'rgba(120,170,210,0.6)');
+      ctx2.fillStyle=wg3; ctx2.fillRect(326+w*40,-26,30,20);
+      ctx2.strokeStyle='rgba(80,100,130,0.5)'; ctx2.lineWidth=1; ctx2.strokeRect(326+w*40,-26,30,20);
+    }
+    ctx2.fillStyle='#c8ccd4'; ctx2.fillRect(464,-24,6,46);
+    bogie(346,0); bogie(444,0);
+
+    // --- LOCOMOTIVE x: 474..640 ---
+    // Loco body gradient
+    const locoG = ctx2.createLinearGradient(474,-36,474,32);
+    locoG.addColorStop(0,'#d0d4dc');
+    locoG.addColorStop(0.2,'#eceef4');
+    locoG.addColorStop(0.5,'#f4f6fa');
+    locoG.addColorStop(0.8,'#dde0e8');
+    locoG.addColorStop(1,'#b8bcc8');
+    ctx2.fillStyle=locoG; ctx2.fillRect(474,-36,132,68);
+    ctx2.fillStyle='#28282e'; ctx2.fillRect(474,24,132,8);
+
+    // Nose (aerodynamic – points RIGHT)
+    const noseG = ctx2.createLinearGradient(606,-36,640,0);
+    noseG.addColorStop(0,'#eceef4');
+    noseG.addColorStop(0.5,'#f8faff');
+    noseG.addColorStop(1,'#c8ccd8');
+    ctx2.fillStyle=noseG;
+    ctx2.beginPath();
+    ctx2.moveTo(606,-36);
+    ctx2.bezierCurveTo(630,-36,645,-20,648,0);
+    ctx2.bezierCurveTo(645,20,630,32,606,32);
+    ctx2.lineTo(606,-36); ctx2.fill();
+    // Nose shadow line
+    ctx2.strokeStyle='rgba(100,110,130,0.4)'; ctx2.lineWidth=1;
+    ctx2.beginPath();
+    ctx2.moveTo(606,-36);
+    ctx2.bezierCurveTo(630,-36,645,-20,648,0);
+    ctx2.bezierCurveTo(645,20,630,32,606,32);
+    ctx2.stroke();
+
+    // Red stripe across loco + nose
+    const rsL = ctx2.createLinearGradient(474,-9,648,-9);
+    rsL.addColorStop(0,'#c01020'); rsL.addColorStop(0.7,'#ff2040'); rsL.addColorStop(1,'#e01830');
+    ctx2.fillStyle=rsL;
+    ctx2.beginPath();
+    ctx2.moveTo(474,-9); ctx2.lineTo(630,-9);
+    ctx2.bezierCurveTo(640,-9,646,-4,646,0);
+    ctx2.bezierCurveTo(646,4,640,9,630,9);
+    ctx2.lineTo(474,9); ctx2.closePath(); ctx2.fill();
+
+    // Cab windows (large)
+    const cwG = ctx2.createLinearGradient(530,-30,530,-10);
+    cwG.addColorStop(0,'rgba(140,190,240,0.65)');
+    cwG.addColorStop(0.5,'rgba(190,225,255,0.5)');
+    cwG.addColorStop(1,'rgba(100,150,200,0.55)');
+    ctx2.fillStyle=cwG; ctx2.fillRect(530,-30,68,24);
+    ctx2.strokeStyle='rgba(80,110,150,0.5)'; ctx2.lineWidth=1.5; ctx2.strokeRect(530,-30,68,24);
+    // Cab divider
+    ctx2.strokeStyle='rgba(150,180,210,0.4)'; ctx2.lineWidth=1;
+    ctx2.beginPath(); ctx2.moveTo(564,-30); ctx2.lineTo(564,-6); ctx2.stroke();
+    // Cab interior shadow
+    ctx2.fillStyle='rgba(20,40,80,0.2)'; ctx2.fillRect(531,-29,66,22);
+    // Driver silhouette
+    ctx2.fillStyle='rgba(30,20,10,0.6)';
+    ctx2.beginPath(); ctx2.arc(578,-18,6,0,Math.PI*2); ctx2.fill();
+    ctx2.fillRect(572,-13,12,10);
+
+    // Headlights (right/nose side)
+    // Top headlight cluster
+    ctx2.fillStyle='#ffeed0';
+    ctx2.beginPath(); ctx2.ellipse(634,-22,6,4,0,0,Math.PI*2); ctx2.fill();
+    ctx2.fillStyle='rgba(255,240,180,0.95)';
+    ctx2.beginPath(); ctx2.ellipse(634,-22,4,3,0,0,Math.PI*2); ctx2.fill();
+    // Bottom headlight
+    ctx2.fillStyle='#ffeed0';
+    ctx2.beginPath(); ctx2.ellipse(636,16,5,4,0,0,Math.PI*2); ctx2.fill();
+    ctx2.fillStyle='rgba(255,240,180,0.95)';
+    ctx2.beginPath(); ctx2.ellipse(636,16,3,3,0,0,Math.PI*2); ctx2.fill();
+    // Headlight beam glow
+    const hlGlow = ctx2.createRadialGradient(650,-22,0,650,-22,60);
+    hlGlow.addColorStop(0,'rgba(255,240,160,0.18)');
+    hlGlow.addColorStop(1,'rgba(255,240,160,0)');
+    ctx2.fillStyle=hlGlow; ctx2.beginPath(); ctx2.arc(650,-22,60,0,Math.PI*2); ctx2.fill();
+
+    // ICE logo on loco body
+    ctx2.fillStyle='rgba(255,255,255,0.9)';
+    ctx2.font='bold 16px sans-serif'; ctx2.textAlign='left';
+    ctx2.fillText('ICE', 484,-16);
+    ctx2.fillStyle='rgba(180,20,40,0.8)';
+    ctx2.font='bold 9px sans-serif';
+    ctx2.fillText('3', 516,-16);
+    // Speed text
+    ctx2.fillStyle='rgba(80,100,130,0.5)';
+    ctx2.font='8px sans-serif';
+    ctx2.fillText('Deutsche Bahn', 484,8);
+
+    // Pantograph
+    ctx2.strokeStyle='rgba(140,150,180,0.8)'; ctx2.lineWidth=2;
+    const pBase = 520;
+    ctx2.beginPath(); ctx2.moveTo(pBase,-36); ctx2.lineTo(pBase-18,-62); ctx2.stroke();
+    ctx2.beginPath(); ctx2.moveTo(pBase,-36); ctx2.lineTo(pBase+18,-62); ctx2.stroke();
+    ctx2.beginPath(); ctx2.moveTo(pBase-18,-62); ctx2.lineTo(pBase+18,-62); ctx2.stroke();
+    // Contact wire spark
+    if(Math.sin(Date.now()*0.02)>0.7){
+      ctx2.fillStyle='rgba(180,220,255,0.9)';
+      ctx2.beginPath(); ctx2.arc(pBase,  -62,3,0,Math.PI*2); ctx2.fill();
+      ctx2.fillStyle='rgba(255,255,255,0.5)';
+      ctx2.beginPath(); ctx2.arc(pBase+2,-62,5,0,Math.PI*2); ctx2.fill();
+    }
+
+    // Loco bogies
+    bogie(500,0); bogie(592,0);
+
+    // Under-body detail (brake lines etc)
+    ctx2.strokeStyle='rgba(60,60,80,0.6)'; ctx2.lineWidth=1;
+    [0,3,6].forEach(dy2=>{
+      ctx2.beginPath(); ctx2.moveTo(474,18+dy2); ctx2.lineTo(606,18+dy2); ctx2.stroke();
+    });
+
+    // Coupling between wagons (visible seams)
+    [158,316,474].forEach(cx2=>{
+      ctx2.fillStyle='rgba(40,40,50,0.8)'; ctx2.fillRect(cx2-3,-28,6,56);
+      ctx2.fillStyle='rgba(80,80,100,0.5)'; ctx2.fillRect(cx2-1,-24,2,48);
+    });
+
+    ctx2.restore();
+  }
+
+>
